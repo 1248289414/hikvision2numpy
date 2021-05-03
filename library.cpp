@@ -44,29 +44,29 @@ void CALLBACK g_RealDataCallBack_V30(LONG lRealHandle, DWORD dwDataType, BYTE *p
         case NET_DVR_SYSHEAD: //系统头
             if (!PlayM4_GetPort(&lPort)) //获取播放库未使用的通道号
             {
-                break;
+                std::cout << NET_DVR_GetLastError() << std::endl;
             }
             //m_iPort = lPort; //第一次回调的是系统头,将获取的播放库 port 号赋值给全局 port,下次回调数据时即使用此 port 号播放
             if (dwBufSize > 0) {
                 if (!PlayM4_SetStreamOpenMode(lPort, STREAME_REALTIME)) //设置实时流播放模式
                 {
-                    break;
+                    std::cout << NET_DVR_GetLastError() << std::endl;
                 }
                 if (!PlayM4_SetDecCBStream(lPort, 1)) //设置为视频流
                 {
-                    break;
+                    std::cout << NET_DVR_GetLastError() << std::endl;
                 }
                 if (!PlayM4_OpenStream(lPort, pBuffer, dwBufSize, SOURCE_BUF_MAX)) //打开流接口
                 {
-                    break;
+                    std::cout << NET_DVR_GetLastError() << std::endl;
                 }
                 //设置解码回调函数 只解码不显示
                 if (!PlayM4_SetDecCallBack(lPort, DecCBFun)) {
-                    break;
+                    std::cout << NET_DVR_GetLastError() << std::endl;
                 }
                 if (!PlayM4_Play(lPort, 0)) //播放开始
                 {
-                    break;
+                    std::cout << NET_DVR_GetLastError() << std::endl;
                 }
             }
             break;
@@ -74,7 +74,7 @@ void CALLBACK g_RealDataCallBack_V30(LONG lRealHandle, DWORD dwDataType, BYTE *p
         default: //其他数据
             if (dwBufSize > 0 && lPort != -1) {
                 if (!PlayM4_InputData(lPort, pBuffer, dwBufSize)) {
-                    break;
+                    std::cout << NET_DVR_GetLastError() << std::endl;
                 }
             }
             break;
@@ -92,11 +92,11 @@ void CALLBACK g_ExceptionCallBack(DWORD dwType, LONG UserID, LONG lHandle, void 
     }
 }
 
-int getHeight(){
+int getHeight() {
     return nHeight;
 }
 
-int getWidth(){
+int getWidth() {
     return nWidth;
 }
 
@@ -151,12 +151,14 @@ void getFrame(unsigned char *frame, int DIM1, int DIM2, int DIM3) {
 
     cv::Mat src = g_frameQueue.front();
 
-    if (DIM1 != nHeight || DIM2 != nWidth || DIM3 != 3) {
-        std::cout << "getFrame() failed, array size is wrong." << std::endl;
+    if (DIM1 != src.rows || DIM2 != src.cols || DIM3 != src.channels()) {
+        std::cout << "getFrame() failed, frame size much be ("
+                  << src.rows << "," << src.cols << "," << src.channels()
+                  << ")." << std::endl;
         return;
     }
     cv::Mat dest = cv::Mat(DIM1, DIM2, CV_8UC3, frame);
-    src.copyTo(dest);
+    src.copyTo(dest); //copyTo函数在不匹配的时候有可能从分配空间
 
     g_frameQueue.pop();
 }
